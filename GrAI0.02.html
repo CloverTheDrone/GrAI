@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>GrAI // Eye of Graeae Interface</title>
+  <style>
+    :root {
+      --bg: #070b10;
+      --panel: #0e1621;
+      --cyan: #38f2ff;
+      --gold: #e6c27a;
+      --red: #ff4b6e;
+      --text: #d8e8f5;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+
+    body {
+      background: radial-gradient(circle at center, #0d1926 0%, var(--bg) 80%);
+      color: var(--text);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(56, 242, 255, 0.2);
+      padding-bottom: 10px;
+    }
+
+    .title {
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: var(--cyan);
+      font-size: 1.1rem;
+    }
+
+    .title span { color: var(--gold); }
+
+    #settings-btn {
+      background: transparent;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .eye-container {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .outer-ring {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 3px dashed var(--gold);
+      animation: spin 25s linear infinite;
+      opacity: 0.7;
+    }
+
+    .inner-ring {
+      position: absolute;
+      width: 175px;
+      height: 175px;
+      border-radius: 50%;
+      border: 2px solid var(--cyan);
+      box-shadow: 0 0 20px rgba(56, 242, 255, 0.25);
+      transition: all 0.2s ease;
+    }
+
+    .core-lens {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(56, 242, 255, 0.35) 0%, rgba(14, 22, 33, 0.95) 75%);
+      border: 2px solid var(--cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      color: var(--cyan);
+      box-shadow: inset 0 0 20px rgba(56, 242, 255, 0.4);
+      transition: all 0.2s ease;
+    }
+
+    body.listening .core-lens {
+      background: radial-gradient(circle, rgba(255, 75, 110, 0.5) 0%, rgba(20, 10, 15, 0.95) 75%);
+      border-color: var(--red);
+      color: var(--red);
+      box-shadow: 0 0 35px rgba(255, 75, 110, 0.6), inset 0 0 25px rgba(255, 75, 110, 0.5);
+      transform: scale(1.07);
+    }
+
+    body.thinking .outer-ring { animation-duration: 3s; border-color: var(--cyan); }
+    body.thinking .core-lens { border-color: var(--gold); color: var(--gold); }
+
+    body.speaking .core-lens {
+      box-shadow: 0 0 40px rgba(56, 242, 255, 0.85), inset 0 0 30px rgba(56, 242, 255, 0.7);
+      transform: scale(1.04);
+    }
+
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    .log-box {
+      width: 100%;
+      max-width: 480px;
+      background: var(--panel);
+      border: 1px solid rgba(56, 242, 255, 0.2);
+      border-radius: 12px;
+      padding: 14px;
+      height: 180px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+
+    .msg-user { color: var(--gold); margin-bottom: 6px; }
+    .msg-grai { color: var(--text); margin-bottom: 6px; }
+    .msg-sys { color: #8ab4f8; margin-bottom: 6px; font-size: 0.8rem; }
+
+    .hint {
+      font-size: 0.75rem;
+      color: rgba(216, 232, 245, 0.65);
+      text-align: center;
+    }
+
+    #modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 8, 12, 0.92);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 10;
+    }
+
+    #modal.open { display: flex; }
+    #modal input {
+      width: 100%;
+      max-width: 360px;
+      padding: 12px;
+      margin: 12px 0;
+      border-radius: 8px;
+      border: 1px solid var(--cyan);
+      background: #0b121b;
+      color: white;
+    }
+    #modal button {
+      background: var(--cyan);
+      color: #05080c;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="title">Gr<span>AI</span> // OPTIC</div>
+    <button id="settings-btn">API KEY</button>
+  </header>
+
+  <div class="eye-container" id="ptt-button">
+    <div class="outer-ring"></div>
+    <div class="inner-ring"></div>
+    <div class="core-lens" id="status-text">STANDBY</div>
+  </div>
+
+  <div class="log-box" id="log-box">
+    <div class="msg-sys"><b>[SYS]:</b> Hold lens or ESP32 button (or tap lens to toggle) to speak.</div>
+  </div>
+
+  <div class="hint">Hold ESP32 Button / Lens to Talk • Quick Tap Lens to Toggle</div>
+
+  <div id="modal">
+    <h3 style="color: var(--cyan); margin-bottom: 6px;">Gemini API Configuration</h3>
+    <p style="font-size: 0.8rem; opacity: 0.75; text-align: center;">Stored locally on your phone</p>
+    <input type="password" id="api-key-input" placeholder="Paste your Gemini API Key" />
+    <button id="save-key-btn">ACTIVATE GrAI</button>
+  </div>
+
+  <script>
+    const SYSTEM_PROMPT = `You are GrAI, an autonomous Snezhnayan mechanical intelligence modeled after the Eye of Graeae. You assist your wearer via an optical monocle link. Speak with analytical precision, subtle deadpan curiosity, and loyal tactical clarity. Keep spoken answers concise (1 to 3 short sentences) so they sound natural through an earpiece.`;
+
+    let apiKey = localStorage.getItem('grai_gemini_key') || '';
+    let conversationHistory = [];
+    let isListening = false;
+    let holdStartTime = 0;
+    let toggleMode = false;
+    let finalTranscript = '';
+
+    const statusText = document.getElementById('status-text');
+    const logBox = document.getElementById('log-box');
+    const pttButton = document.getElementById('ptt-button');
+    const modal = document.getElementById('modal');
+    const apiInput = document.getElementById('api-key-input');
+
+    if (!apiKey) modal.classList.add('open');
+
+    document.getElementById('settings-btn').onclick = () => {
+      apiInput.value = apiKey;
+      modal.classList.add('open');
+    };
+
+    document.getElementById('save-key-btn').onclick = () => {
+      apiKey = apiInput.value.trim();
+      localStorage.setItem('grai_gemini_key', apiKey);
+      modal.classList.remove('open');
+      addLog('SYS', 'API key saved.', 'msg-sys');
+    };
+
+    function setState(state, label) {
+      document.body.className = state;
+      statusText.textContent = label;
+    }
+
+    function addLog(sender, text, cls = 'msg-grai') {
+      const div = document.createElement('div');
+      div.className = cls;
+      div.innerHTML = `<b>[${sender}]:</b> ${text}`;
+      logBox.appendChild(div);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+
+    if (!SpeechRecognition) {
+      addLog('SYS', 'SpeechRecognition not available in this browser/context. Use HTTPS in Chrome.', 'msg-sys');
+    } else {
+      recognition = new SpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.interimResults = true;
+      recognition.continuous = true;
+
+      recognition.onstart = () => {
+        addLog('SYS', 'Mic active—speak now.', 'msg-sys');
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        finalTranscript = transcript.trim();
+      };
+
+      recognition.onerror = (e) => {
+        isListening = false;
+        toggleMode = false;
+        setState('', 'STANDBY');
+        addLog('SYS', `Mic error: ${e.error}`, 'msg-sys');
+      };
+
+      recognition.onend = () => {
+        if (isListening && toggleMode) {
+          // Keep going if toggled on
+          try { recognition.start(); } catch (e) {}
+        }
+      };
+    }
+
+    function startListening() {
+      if (!recognition) {
+        addLog('SYS', 'No speech recognizer available.', 'msg-sys');
+        return;
+      }
+      if (!apiKey) {
+        modal.classList.add('open');
+        return;
+      }
+      if (isListening) return;
+
+      window.speechSynthesis.cancel();
+      isListening = true;
+      holdStartTime = Date.now();
+      finalTranscript = '';
+      setState('listening', 'LISTENING');
+
+      try {
+        recognition.start();
+      } catch (err) {
+        addLog('SYS', `Start failed: ${err.message}`, 'msg-sys');
+      }
+    }
+
+    async function stopListeningAndAsk() {
+      if (!isListening) return;
+      isListening = false;
+      toggleMode = false;
+
+      try { recognition.stop(); } catch (e) {}
+
+      setTimeout(async () => {
+        const prompt = finalTranscript.trim();
+        if (!prompt) {
+          setState('', 'STANDBY');
+          addLog('SYS', 'No speech detected. Hold a bit longer or tap lens to toggle.', 'msg-sys');
+          return;
+        }
+
+        addLog('WEARER', prompt, 'msg-user');
+        setState('thinking', 'ANALYZING');
+
+        try {
+          const reply = await queryGemini(prompt);
+          addLog('GrAI', reply, 'msg-grai');
+          speak(reply);
+        } catch (err) {
+          addLog('SYS', `API error: ${err.message}`, 'msg-sys');
+          setState('', 'ERROR');
+        }
+      }, 450);
+    }
+
+    async function queryGemini(userText) {
+      conversationHistory.push({ role: 'user', parts: [{ text: userText }] });
+
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents: conversationHistory.slice(-10)
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+
+      const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!replyText) throw new Error('Empty response from Gemini');
+
+      conversationHistory.push({ role: 'model', parts: [{ text: replyText }] });
+      return replyText;
+    }
+
+    function speak(text) {
+      setState('speaking', 'TRANSMITTING');
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.05;
+      utterance.pitch = 0.95;
+      utterance.onend = () => setState('', 'STANDBY');
+      utterance.onerror = () => setState('', 'STANDBY');
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // Touch support on mobile
+    pttButton.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (!isListening) {
+        startListening();
+      } else if (toggleMode) {
+        stopListeningAndAsk();
+      }
+    }, { passive: false });
+
+    pttButton.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      if (!isListening) return;
+      const heldMs = Date.now() - holdStartTime;
+      if (heldMs < 350) {
+        // Quick tap switches into toggle-until-tap mode
+        toggleMode = true;
+        addLog('SYS', 'Toggle mode: tap lens again when finished.', 'msg-sys');
+      } else {
+        stopListeningAndAsk();
+      }
+    }, { passive: false });
+
+    // Mouse fallback for desktop testing
+    pttButton.addEventListener('mousedown', () => startListening());
+    window.addEventListener('mouseup', () => {
+      if (isListening && !toggleMode) stopListeningAndAsk();
+    });
+
+    // ESP32 Bluetooth Button Hold (Spacebar)
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && !e.repeat && document.activeElement.tagName !== 'INPUT') {
+        e.preventDefault();
+        startListening();
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT') {
+        e.preventDefault();
+        stopListeningAndAsk();
+      }
+    });
+  </script>
+</body>
+</html>
